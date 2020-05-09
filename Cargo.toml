@@ -4,4 +4,9 @@ version = "0.1.0"
 authors = ["Ivan Sadikov <ivan.sadikov@gmail.com>"]
 edition = "2018"
 
-[dependencies]
+[dependencies.sdl2]
+version = "0.34"
+features = ["image"]
+
+[dependencies.rand]
+version = "*"
