@@ -1,6 +1,7 @@
 use crate::error::Result;
 use crate::pixel::{Pixel, PixelMode};
-use crate::sprite::Sprite;
+use crate::keys::MouseState;
+use crate::sprite::{Flip, Sprite};
 
 /// Context provides facilities to draw objects.
 pub struct Context {
@@ -10,6 +11,7 @@ pub struct Context {
   font: Sprite, // sprite for font
   pixel_mode: PixelMode, // current pixel mode
   blend_factor: f32,
+  mouse_state: MouseState // state of the mouse controls
 }
 
 impl Context {
@@ -22,6 +24,7 @@ impl Context {
       font: load_font(),
       pixel_mode: PixelMode::NORMAL,
       blend_factor: 1.0,
+      mouse_state: MouseState::new(),
     }
   }
 
@@ -73,13 +76,37 @@ impl Context {
     }
   }
 
+  /// Clears the drawing target with a particular colour.
+  #[inline]
+  pub fn clear(&mut self, col: Pixel) -> Result<()> {
+    for x in 0..self.current.width() {
+      for y in 0..self.current.height() {
+        self.current.set_pixel(x, y, col)?;
+      }
+    }
+    Ok(())
+  }
+
+  /// Returns mouse state.
+  #[inline]
+  pub fn mouse_state(&self) -> &MouseState {
+    &self.mouse_state
+  }
+
+  /// Returns mouse state as mut.
+  /// Internal method.
+  #[inline]
+  pub fn mouse_state_mut(&mut self) -> &mut MouseState {
+    &mut self.mouse_state
+  }
+
   /// Draws pixel in the current drawing target.
   pub fn draw(&mut self, x: usize, y: usize, p: Pixel) -> Result<()> {
     match self.pixel_mode {
       PixelMode::NORMAL => self.current.set_pixel(x, y, p),
       PixelMode::MASK => {
         if p.a() == 255 {
-          self.current.set_pixel(x, y, p)?;
+          self.current.set_pixel(x, y, Pixel::BLACK())?;
         }
         Ok(())
       },
@@ -93,6 +120,128 @@ impl Context {
         self.current.set_pixel(x, y, Pixel::rgba(r as u8, g as u8, b as u8, a as u8))
       },
     }
+  }
+
+  pub fn draw_line(&mut self, x1: usize, y1: usize, x2: usize, y2: usize, p: Pixel, pattern: usize) -> Result<()> {
+    let dx = x2 as i32 - x1 as i32;
+    let dy = y2 as i32 - y1 as i32;
+
+    let rol = || {
+      let p = (pattern << 1) | (pattern >> 31);
+      (p & 1) != 0
+    };
+
+    if dx == 0 { // line is vertical
+      let ymin = std::cmp::min(y1, y2);
+      let ymax = std::cmp::max(y1, y2);
+      for y in ymin..ymax {
+        if rol() {
+          self.draw(x1, y, p)?;
+        }
+      }
+      return Ok(());
+    }
+
+    if dy == 0 { // line is horizontal
+      let xmin = std::cmp::min(x1, x2);
+      let xmax = std::cmp::max(x1, x2);
+      for x in xmin..xmax {
+        if rol() {
+          self.draw(x, y1, p)?;
+        }
+      }
+      return Ok(());
+    }
+
+    // Otherwise:
+    let dx1 = dx.abs();
+    let dy1 = dy.abs();
+    let mut px = 2 * dy1 - dx1;
+    let mut py = 2 * dx1 - dy1;
+
+    let mut x;
+    let mut y;
+    let xe;
+    let ye;
+
+    if dy1 <= dx1 {
+      if dx >= 0 {
+        x = x1;
+        y = y1;
+        xe = x2;
+      } else {
+        x = x2;
+        y = y2;
+        xe = x1;
+      }
+
+      if rol() {
+        self.draw(x, y, p)?;
+      }
+
+      for _i in 0..xe {
+        x = x + 1;
+        if px < 0 {
+          px = px + 2 * dy1;
+        } else {
+          if (dx < 0 && dy < 0) || (dx > 0 && dy > 0) {
+            y = y + 1;
+          } else {
+            y = y - 1;
+          }
+          px = px + 2 * (dy1 - dx1);
+        }
+        if rol() {
+          self.draw(x, y, p)?;
+        }
+      }
+    } else {
+      if dy >= 0 {
+        x = x1;
+        y = y1;
+        ye = y2;
+      } else {
+        x = x2;
+        y = y2;
+        ye = y1;
+      }
+
+      if rol() {
+        self.draw(x, y, p)?;
+      }
+
+      for _i in 0..ye {
+        y = y + 1;
+        if py <= 0 {
+          py = py + 2 * dx1;
+        } else {
+          if (dx < 0 && dy < 0) || (dx > 0 && dy > 0) {
+            x = x + 1;
+          } else {
+            x = x - 1;
+          }
+          py = py + 2 * (dx1 - dy1);
+        }
+        if rol() {
+          self.draw(x, y, p)?;
+        }
+      }
+    }
+
+    Ok(())
+  }
+
+  pub fn draw_line0(&mut self, x1: usize, y1: usize, x2: usize, y2: usize, p: Pixel) -> Result<()> {
+    self.draw_line(x1, y1, x2, y2, p, 0xFFFFFFFF)
+  }
+
+  /// Draws rectangle.
+  pub fn draw_rect(&mut self, x: usize, y: usize, w: usize, h: usize, p: Pixel) -> Result<()> {
+    self.draw_line0(x, y, x+w, y, p)?;
+    self.draw_line0(x+w, y, x+w, y+h, p)?;
+    self.draw_line0(x+w, y+h, x, y+h, p)?;
+    self.draw_line0(x, y+h, x, y, p)?;
+    Ok(())
   }
 
   /// Draws string in the current drawing target.
@@ -143,6 +292,55 @@ impl Context {
     }
 
     self.set_pixel_mode(m);
+
+    Ok(())
+  }
+
+  /// Draws partial sprite.
+  pub fn draw_partial_sprite(&mut self, x: usize, y: usize, sprite: &Sprite, ox: usize, oy: usize, w: usize, h: usize, scale: usize, flip: Flip) -> Result<()> {
+    let mut fxs = 0;
+    let mut fxm: i32 = 1;
+    let mut fx;
+
+    let mut fys = 0;
+    let mut fym: i32 = 1;
+    let mut fy;
+
+    if flip == Flip::HORIZ {
+      fxs = w - 1;
+      fxm = -1;
+    }
+
+    if flip == Flip::VERT {
+      fys = h - 1;
+      fym = -1;
+    }
+
+    if scale > 1 {
+      fx = fxs;
+      for i in 0..w {
+        fy = fys;
+        for j in 0..h {
+          for is in 0..scale {
+            for js in 0..scale {
+              self.draw(x + (i * scale) + is, y + (j * scale) + js, sprite.get_pixel(fx + ox, fy + oy)?)?;
+            }
+          }
+          fy = (fy as i32 + fym) as usize;
+        }
+        fx = (fx as i32 + fxm) as usize;
+      }
+    } else {
+      fx = fxs;
+      for i in 0..w {
+        fy = fys;
+        for j in 0..h {
+          self.draw(x + i, y + j, sprite.get_pixel(fx + ox, fy + oy)?)?;
+          fy = (fy as i32 + fym) as usize;
+        }
+        fx = (fx as i32 + fxm) as usize;
+      }
+    }
 
     Ok(())
   }

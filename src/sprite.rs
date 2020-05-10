@@ -6,14 +6,14 @@ use crate::error::{PGError, Result};
 use crate::pixel::Pixel;
 
 /// Sample mode for a sprite.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Mode {
   NORMAL,
   PERIODIC,
 }
 
 /// Flip for a sprite.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Flip {
   NONE,
   HORIZ,

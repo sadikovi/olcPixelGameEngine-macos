@@ -1,5 +1,6 @@
 pub mod error;
 pub mod pixel;
+pub mod keys;
 pub mod sprite;
 pub mod context;
 
@@ -74,13 +75,30 @@ pub fn start_event_loop<'a>(
   let mut frame_timer: f32 = 0.0;
 
   'eventloop: loop {
+    context.mouse_state_mut().reset();
+
     for event in event_pump.poll_iter() {
       match event {
         Event::Quit {..} | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
           break 'eventloop;
         },
+        // Mouse coordinates are in "pixel" values, we need to reset them
+        Event::MouseMotion { timestamp, window_id, which, mousestate, x, y, xrel, yrel } => {
+          let upd_event = Event::MouseMotion {
+            timestamp,
+            window_id,
+            which,
+            mousestate,
+            x: x / pixel_width as i32,
+            y: y / pixel_height as i32,
+            xrel,
+            yrel
+          };
+          context.mouse_state_mut().update(upd_event);
+        },
         _ => {
-          println!("Event: {:?}", event);
+          context.mouse_state_mut().update(event);
+          // println!("Event: {:?}", event);
         }
       }
     }
