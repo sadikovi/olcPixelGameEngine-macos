@@ -20,7 +20,7 @@ pub enum Flip {
   VERT,
 }
 
-/// Sprite stores data in RGBA8888.
+/// Sprite stores data in RGBA32.
 /// Pitch is always width * 4
 #[derive(Clone, Debug)]
 pub struct Sprite {
@@ -101,6 +101,12 @@ impl Sprite {
     self.width * 4
   }
 
+  /// Returns hard-coded pixel format for the sprite.
+  #[inline]
+  pub fn pixel_format(&self) -> PixelFormatEnum {
+    PixelFormatEnum::RGBA32
+  }
+
   /// Returns sample mode.
   #[inline]
   pub fn mode(&self) -> Mode {
@@ -111,6 +117,18 @@ impl Sprite {
   #[inline]
   pub fn set_sample_mode(&mut self, mode: Mode) {
     self.mode = mode;
+  }
+
+  /// Returns raw sprite data.
+  #[inline]
+  pub fn data(&self) -> &[u8] {
+    &self.data
+  }
+
+  /// Returns mutable reference to the sprite data.
+  #[inline]
+  pub fn data_mut(&mut self) -> &mut [u8] {
+    self.data.as_mut()
   }
 
   /// Returns pixel at position (x, y).

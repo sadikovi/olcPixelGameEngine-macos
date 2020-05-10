@@ -1,3 +1,11 @@
+/// Pixel mode.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum PixelMode {
+  NORMAL,
+  MASK,
+  ALPHA,
+}
+
 /// Represents RGBA value.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Pixel {
