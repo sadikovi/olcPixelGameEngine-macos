@@ -16,7 +16,9 @@ impl Game for Example {
   }
 
   fn on_user_update(&mut self, context: &mut Context, _elapsed_time: f32) -> Result<()> {
-    context.draw_string(10, 10, "Hello world!\nWelcome to the OLC!", Pixel::rgb(255, 0, 255), 1)
+    context.draw_string(10, 10, "Hello world!", Pixel::BLACK(), 1)?;
+    context.draw_string(10, 20, "Welcome to OLC!", Pixel::DARK_MAGENTA(), 1)?;
+    context.draw_string(10, 30, "Let's start coding!\n  Yay!", Pixel::RED(), 1)
   }
 
   fn on_user_destroy(&mut self) -> Result<()> {
