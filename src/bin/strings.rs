@@ -8,7 +8,7 @@ struct Example {
 
 impl Game for Example {
   fn title(&self) -> &str {
-    "Hello World"
+    "Strings"
   }
 
   fn on_user_create(&mut self) -> Result<()> {
@@ -16,18 +16,7 @@ impl Game for Example {
   }
 
   fn on_user_update(&mut self, context: &mut Context, _elapsed_time: f32) -> Result<()> {
-    let sprite = context.draw_target_mut();
-    for x in 0..sprite.width() {
-      for y in 0..sprite.height() {
-        let r = rand::random::<u8>();
-        let g = rand::random::<u8>();
-        let b = rand::random::<u8>();
-        let p = Pixel::rgb(r, g, b);
-        sprite.set_pixel(x, y, p)?;
-      }
-    }
-
-    Ok(())
+    context.draw_string(10, 10, "Hello world!\nWelcome to the OLC!", Pixel::rgb(255, 0, 255), 1)
   }
 
   fn on_user_destroy(&mut self) -> Result<()> {
@@ -37,5 +26,5 @@ impl Game for Example {
 
 fn main() {
   let mut game = Example { };
-  start_event_loop(100, 100, 4, 4, false, &mut game).unwrap();
+  start_event_loop(200, 100, 4, 4, false, &mut game).unwrap();
 }
