@@ -10,9 +10,10 @@ If the `olcPixelGameEngine.h` file is out of date, then please update it!
 X11 is required to run the pixel game engine. X11 is no longer included in macos, but X11 server and
 client libraries are available from the XQuartz project (see https://support.apple.com/en-us/HT201341).
 
-You can download X11 from https://www.xquartz.org/ and easily install it.
+You can download X11 from https://www.xquartz.org/ and easily install it. Typical installation path
+is `/usr/X11` and it contains includes and libraries for X11 and OpenGL.
 
-Normally the installation path is `/usr/X11` and it contains includes and libraries for X11 and OpenGL.
+I will be working on XCode and Metal support, see TODOs for more information.
 
 ## Run the example program
 
@@ -27,9 +28,9 @@ g++ -o olcExampleProgram olcExampleProgram.cpp \
 ./olcExampleProgram
 ```
 
-## TODO
-- [x] Make it work with X11 and OpenGL.
-- [ ] Make it work with XCode and Metal.
+## TODOs
+- :white_check_mark: Make it work with X11 and OpenGL.
+- TODO Make it work with XCode and Metal.
 
 ## Rust bindings
 
