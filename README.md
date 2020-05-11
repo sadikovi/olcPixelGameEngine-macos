@@ -1,11 +1,26 @@
-brew install sdl2
+# olcPixelGameEngine-macos
 
-brew install sdl2_image
+The repository contains the latest version of [https://github.com/OneLoneCoder/olcPixelGameEngine]
+and scripts to build the file with CLI on macos.
 
-Compile OLC pixel game engine on macos:
-Install X11 from https://support.apple.com/en-us/HT201341 or https://www.xquartz.org/.
+If the `olcPixelGameEngine.h` file is out of date, then please update it!
+
+## Requirements
+
+X11 is required to run the pixel game engine. X11 is no longer included in macos, but X11 server and
+client libraries are available from the XQuartz project (see https://support.apple.com/en-us/HT201341).
+
+You can download X11 from https://www.xquartz.org/ and easily install it.
+
+Normally the installation path is `/usr/X11` and it contains includes and libraries for X11 and OpenGL.
+
+Run this command to build the example program and then run it:
 
 ```shell
 g++ -o olcExampleProgram olcExampleProgram.cpp \
   -I/usr/X11/include -L/usr/X11/lib -lX11 -lGL -lpng -lpthread -std=c++17
+```
+
+```shell
+./olcExampleProgram
 ```
