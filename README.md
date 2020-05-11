@@ -27,6 +27,10 @@ g++ -o olcExampleProgram olcExampleProgram.cpp \
 ./olcExampleProgram
 ```
 
+## TODO
+- [x] Make it work with X11 and OpenGL.
+- [ ] Make it work with XCode and Metal.
+
 ## Rust bindings
 
 This repository also contains Rust bindings to write games in Rust instead of C++.
