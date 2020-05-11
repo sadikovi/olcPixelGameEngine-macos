@@ -226,6 +226,11 @@ int main()
   #endif
 #endif
 
+// ivan: we define our own methods for filesystem, don't use any imports
+#if defined(__APPLE__)
+  #undef USE_EXPERIMENTAL_FS
+#endif
+
 #if defined(USE_EXPERIMENTAL_FS)
   // C++14
   #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
@@ -233,8 +238,25 @@ int main()
   namespace _gfs = std::experimental::filesystem::v1;
 #else
   // C++17
-  #include <filesystem>
-  namespace _gfs = std::filesystem;
+  #if defined(__APPLE__)
+    // ivan: define _gfs by using stat, all the code checks is exists and file size.
+    #include <sys/stat.h>
+    namespace _gfs
+    {
+      struct stat stat_buf;
+      bool exists(const std::string p) {
+        return (stat(p.c_str(), &stat_buf) == 0);
+      }
+
+      uintmax_t file_size(const std::string p) {
+        int rc = stat(p.c_str(), &stat_buf);
+        return rc == 0 ? stat_buf.st_size : -1;
+      }
+    }
+  #else
+    #include <filesystem>
+    namespace _gfs = std::filesystem;
+  #endif
 #endif
 
 #if defined(UNICODE) || defined(_UNICODE)
@@ -2328,7 +2350,7 @@ namespace olc
   typedef HGLRC glRenderContext_t;
 #endif
 
-#if defined(__linux__) || defined(__FreeBSD__)
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
   #include <GL/gl.h>
   namespace X11
   {
@@ -2351,7 +2373,7 @@ namespace olc
     glDeviceContext_t glDeviceContext = 0;
     glRenderContext_t glRenderContext = 0;
 
-  #if defined(__linux__) || defined(__FreeBSD__)
+  #if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
     X11::Display*         olc_Display = nullptr;
     X11::Window*         olc_Window = nullptr;
     X11::XVisualInfo*            olc_VisualInfo = nullptr;
@@ -2386,7 +2408,7 @@ namespace olc
       if (wglSwapInterval && !bVSYNC) wglSwapInterval(0);
     #endif
 
-    #if defined(__linux__) || defined(__FreeBSD__)
+    #if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
       using namespace X11;
       // Linux has tighter coupling between OpenGL and X11, so we store
       // various "platform" handles in the renderer
@@ -2426,7 +2448,7 @@ namespace olc
       wglDeleteContext(glRenderContext);
     #endif
 
-    #if defined(__linux__) || defined(__FreeBSD__)
+    #if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
       glXMakeCurrent(olc_Display, None, NULL);
       glXDestroyContext(olc_Display, glDeviceContext);
     #endif
@@ -2439,7 +2461,7 @@ namespace olc
       SwapBuffers(glDeviceContext);
     #endif
 
-    #if defined(__linux__) || defined(__FreeBSD__)
+    #if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
       X11::glXSwapBuffers(olc_Display, *olc_Window);
     #endif
     }
@@ -2793,7 +2815,7 @@ namespace olc
 // O------------------------------------------------------------------------------O
 // | START PLATFORM: LINUX                                                        |
 // O------------------------------------------------------------------------------O
-#if defined(__linux__) || defined(__FreeBSD__)
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
 namespace olc
 {
   class Platform_Linux : public olc::Platform
@@ -3122,7 +3144,7 @@ namespace olc
     platform = std::make_unique<olc::Platform_Windows>();
 #endif
 
-#if defined(__linux__) || defined(__FreeBSD__)
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
     platform = std::make_unique<olc::Platform_Linux>();
 #endif
 
