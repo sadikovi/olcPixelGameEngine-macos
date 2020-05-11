@@ -1,6 +1,6 @@
 # olcPixelGameEngine-macos
 
-The repository contains the latest version of [https://github.com/OneLoneCoder/olcPixelGameEngine]
+The repository contains the latest version of https://github.com/OneLoneCoder/olcPixelGameEngine
 and scripts to build the file with CLI on macos.
 
 If the `olcPixelGameEngine.h` file is out of date, then please update it!
@@ -14,7 +14,9 @@ You can download X11 from https://www.xquartz.org/ and easily install it.
 
 Normally the installation path is `/usr/X11` and it contains includes and libraries for X11 and OpenGL.
 
-Run this command to build the example program and then run it:
+## Run the example program
+
+Run this command to build and the example program and then run it:
 
 ```shell
 g++ -o olcExampleProgram olcExampleProgram.cpp \
@@ -24,3 +26,11 @@ g++ -o olcExampleProgram olcExampleProgram.cpp \
 ```shell
 ./olcExampleProgram
 ```
+
+## Rust bindings
+
+This repository also contains Rust bindings to write games in Rust instead of C++.
+See [build.rs](./build.rs) and source files for more details. Also, see examples folder for more
+information and available API.
+
+You can include this repository as a dependency to your project to build and run games!
