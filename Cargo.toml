@@ -1,12 +1,11 @@
 [package]
-name = "olc-port"
+name = "olcPixelGameEngine"
 version = "0.1.0"
 authors = ["Ivan Sadikov <ivan.sadikov@gmail.com>"]
 edition = "2018"
 
-[dependencies.sdl2]
-version = "0.34"
-features = ["image"]
+[dependencies]
+libc = "0.2"
 
-[dependencies.rand]
-version = "*"
+[build-dependencies]
+cc = "1.0"
