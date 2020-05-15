@@ -4,9 +4,9 @@ fn main() {
     .include("/usr/X11/include")
     .flag("-std=c++17")
     .flag("-Wno-delete-non-virtual-dtor") // warnings from the olcPixelGameEngine, need to be fixed upstream
-    .file("olcBinding.cpp")
+    .file("src/olcRustBinding.cpp")
     .warnings(false)
-    .compile("olcBinding");
+    .compile("olcRustBinding");
 
   println!("cargo:rustc-link-search={}", "/usr/X11/lib");
   println!("cargo:rustc-link-lib=X11");
