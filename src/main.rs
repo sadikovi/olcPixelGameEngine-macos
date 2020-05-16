@@ -8,35 +8,62 @@ use std::fmt;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[allow(non_camel_case_types)]
+#[allow(dead_code)]
 enum RCode {
-  FAIL = 0,
-  OK = 1,
-  NO_FILE = -1
+  CONSTRUCT_FAIL,
+  CONSTRUCT_NO_FILE,
+  START_FAIL,
+  START_NO_FILE,
+  OK
 }
 
-#[no_mangle]
-extern "C" fn onUserCreate(ptr: *const c_void) -> bool {
-  println!("onUserCreate: {:?}", ptr);
-  return true;
-}
-
-#[no_mangle]
-extern "C" fn onUserUpdate(ptr: *const c_void, fElapsedTime: c_float) -> bool {
-  println!("onUserUpdate: {:?}, {}", ptr, fElapsedTime);
-  return true;
-}
-
-#[no_mangle]
-extern "C" fn onUserDestroy(ptr: *const c_void) -> bool {
-  println!("onUserDestroy: {:?}", ptr);
-  return true;
-}
-
-#[link(name="olcRustBinding", kind="static")]
+#[link(name="olcRustBindingApp", kind="static")]
+#[allow(dead_code)]
 extern "C" {
-  fn create(name: *const c_char) -> *mut c_void;
-  fn construct(ptr: *mut c_void, screen_w: i32, screen_h: i32, pixel_w: i32, pixel_h: i32, full_screen: bool, vsync: bool) -> RCode;
-  fn start(ptr: *mut c_void) -> RCode;
+  fn create() -> *const c_void;
+  fn start(name: *const c_char, binding: *mut c_void, screen_w: i32, screen_h: i32, pixel_w: i32, pixel_h: i32, full_screen: bool, vsync: bool) -> RCode;
+}
+
+#[no_mangle]
+extern "C" fn onUserCreate(app: *const c_void, binding: *mut c_void) -> bool {
+  let b = unsafe { Box::from_raw(binding as *mut Binding) };
+  let ctx = Context { app };
+  let res = match b.game.on_user_create(&ctx) {
+    Err(err) => {
+      println!("ERROR: {}", err);
+      false
+    },
+    Ok(_) => true
+  };
+  Box::leak(b); // always leak the binding, it will be cleaned up in the main function
+  res
+}
+
+#[no_mangle]
+extern "C" fn onUserUpdate(app: *const c_void, binding: *mut c_void, elapsed_time: c_float) -> bool {
+  let b = unsafe { Box::from_raw(binding as *mut Binding) };
+  let ctx = Context { app };
+  let res = match b.game.on_user_update(&ctx, elapsed_time) {
+    Err(err) => {
+      println!("ERROR: {}", err);
+      false
+    },
+    Ok(_) => true
+  };
+  Box::leak(b); // always leak the binding, it will be cleaned up in the main function
+  res
+}
+
+#[no_mangle]
+extern "C" fn onUserDestroy(_app: *const c_void, binding: *mut c_void) -> bool {
+  // binding goes out of scope and is dropped
+  let b = unsafe { Box::from_raw(binding as *mut Binding) };
+  match b.game.on_user_destroy() {
+    Err(err) => println!("ERROR: {}", err),
+    Ok(_) => {}
+  }
+  true // always return true to finish cleanup
 }
 
 // Rust API
@@ -58,87 +85,90 @@ impl From<std::ffi::NulError> for OlcError {
   }
 }
 
+/// Game trait, should be extended by an implementation and passed to run function.
 pub trait Game {
+  /// Returns the name of the application.
   fn name(&self) -> &str;
-  fn on_user_create(&mut self) -> Result<(), OlcError>;
-  fn on_user_update(&mut self, elapsed_time: f32) -> Result<(), OlcError>;
+  /// Called on user create action.
+  fn on_user_create(&mut self, ctx: &Context) -> Result<(), OlcError>;
+  /// Called on user update action for every frame.
+  fn on_user_update(&mut self, ctx: &Context, elapsed_time: f32) -> Result<(), OlcError>;
+  /// Called on user destroy action.
   fn on_user_destroy(&mut self) -> Result<(), OlcError>;
 }
 
-pub struct GameEngine<'a> {
-  // Pointer to the engine instance
-  ptr: *mut c_void,
-  game: &'a mut dyn Game,
+/// Binding for the game.
+struct Binding<'a> {
+  game: &'a mut dyn Game
 }
 
-impl<'a> GameEngine<'a> {
-  pub fn create(game: &'a mut dyn Game) -> Result<Self, OlcError> {
-    let name = CString::new(game.name())?;
-    let ptr = unsafe { create(name.as_ptr()) };
-    Ok(Self { ptr: ptr, game: game })
-  }
+/// Context to access drawing routines in olcPixelGameEngine.
+pub struct Context {
+  // Pointer to the app instance
+  app: *const c_void
+}
 
-  pub fn start(
-    self,
-    screen_width: u32,
-    screen_height: u32,
-    pixel_width: u32,
-    pixel_height: u32
-  ) -> Result<(), OlcError>
-  {
-    self.start_advanced(screen_width, screen_height, pixel_width, pixel_height, false, false)
-  }
+/// Main function to run the game.
+/// It is recommended to pass full_screen and vsync as "false".
+pub fn run<'a>(
+  game: &'a mut dyn Game,
+  screen_width: u32,
+  screen_height: u32,
+  pixel_width: u32,
+  pixel_height: u32,
+  full_screen: bool,
+  vsync: bool
+) -> Result<(), OlcError>
+{
+  let name = CString::new(game.name())?;
 
-  pub fn start_advanced(
-    self,
-    screen_width: u32,
-    screen_height: u32,
-    pixel_width: u32,
-    pixel_height: u32,
-    full_screen: bool,
-    vsync: bool
-  ) -> Result<(), OlcError>
-  {
-    let res = unsafe {
-      construct(
-        self.ptr,
-        screen_width as i32,
-        screen_height as i32,
-        pixel_width as i32,
-        pixel_height as i32,
-        full_screen,
-        vsync
-      )
-    };
+  let binding = Binding { game };
 
-    if res == RCode::FAIL {
-      return Err(OlcError { msg: format!("Failed to construct the application: FAIL") });
-    } else if res == RCode::NO_FILE {
-      return Err(OlcError { msg: format!("Failed to construct the application: NO_FILE") });
-    }
+  let res = unsafe {
+    start(
+      name.as_ptr(),
+      Box::into_raw(Box::new(binding)) as *mut c_void,
+      screen_width as i32,
+      screen_height as i32,
+      pixel_width as i32,
+      pixel_height as i32,
+      full_screen,
+      vsync
+    )
+  };
 
-    let res = unsafe { start(self.ptr) };
-
-    if res == RCode::FAIL {
-      return Err(OlcError { msg: format!("Failed to start the application: FAIL") });
-    } else if res == RCode::NO_FILE {
-      return Err(OlcError { msg: format!("Failed to start the application: NO_FILE") });
-    }
-
-    Ok(())
+  match res {
+    RCode::CONSTRUCT_FAIL =>
+      Err(OlcError { msg: format!("Failed to construct the application: FAIL") }),
+    RCode::CONSTRUCT_NO_FILE =>
+      Err(OlcError { msg: format!("Failed to construct the application: NO_FILE") }),
+    RCode::START_FAIL =>
+      Err(OlcError { msg: format!("Failed to start the application: FAIL") }),
+    RCode::START_NO_FILE =>
+      Err(OlcError { msg: format!("Failed to start the application: NO_FILE") }),
+    RCode::OK =>
+      Ok(())
   }
 }
 
 struct Example {}
 impl Game for Example {
   fn name(&self) -> &str { "Hello, World!" }
-  fn on_user_create(&mut self) -> Result<(), OlcError> { Ok(()) }
-  fn on_user_update(&mut self, elapsed_time: f32) -> Result<(), OlcError> { Ok(()) }
-  fn on_user_destroy(&mut self) -> Result<(), OlcError> { Ok(()) }
+  fn on_user_create(&mut self, _ctx: &Context) -> Result<(), OlcError> {
+    println!("Create call from the game!");
+    Ok(())
+  }
+  fn on_user_update(&mut self, _ctx: &Context, elapsed_time: f32) -> Result<(), OlcError> {
+    println!("Update call from the game! {}", elapsed_time);
+    Ok(())
+  }
+  fn on_user_destroy(&mut self) -> Result<(), OlcError> {
+    println!("Destroy call from the game!");
+    Ok(())
+  }
 }
 
 fn main() {
   let mut game = Example {};
-  let engine = GameEngine::create(&mut game).unwrap();
-  engine.start(200, 80, 4, 4).unwrap();
+  run(&mut game, 200, 80, 4, 4, false, false).unwrap();
 }
