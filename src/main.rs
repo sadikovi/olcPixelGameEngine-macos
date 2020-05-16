@@ -8,8 +8,6 @@ use std::fmt;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[allow(non_camel_case_types)]
-#[allow(dead_code)]
 enum RCode {
   CONSTRUCT_FAIL,
   CONSTRUCT_NO_FILE,
@@ -18,18 +16,29 @@ enum RCode {
   OK
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Pixel {
+  pub r: u8,
+  pub g: u8,
+  pub b: u8,
+  pub a: u8
+}
+
 #[link(name="olcRustBindingApp", kind="static")]
 #[allow(dead_code)]
 extern "C" {
-  fn create() -> *const c_void;
+  fn c_rand() -> i32;
   fn start(name: *const c_char, binding: *mut c_void, screen_w: i32, screen_h: i32, pixel_w: i32, pixel_h: i32, full_screen: bool, vsync: bool) -> RCode;
+  fn draw(x: i32, y: i32, p: Pixel) -> bool;
+  fn screen_width() -> i32;
+  fn screen_height() -> i32;
 }
 
 #[no_mangle]
-extern "C" fn onUserCreate(app: *const c_void, binding: *mut c_void) -> bool {
+extern "C" fn onUserCreate(binding: *mut c_void) -> bool {
   let b = unsafe { Box::from_raw(binding as *mut Binding) };
-  let ctx = Context { app };
-  let res = match b.game.on_user_create(&ctx) {
+  let res = match b.game.on_user_create() {
     Err(err) => {
       println!("ERROR: {}", err);
       false
@@ -41,10 +50,9 @@ extern "C" fn onUserCreate(app: *const c_void, binding: *mut c_void) -> bool {
 }
 
 #[no_mangle]
-extern "C" fn onUserUpdate(app: *const c_void, binding: *mut c_void, elapsed_time: c_float) -> bool {
+extern "C" fn onUserUpdate(binding: *mut c_void, elapsed_time: c_float) -> bool {
   let b = unsafe { Box::from_raw(binding as *mut Binding) };
-  let ctx = Context { app };
-  let res = match b.game.on_user_update(&ctx, elapsed_time) {
+  let res = match b.game.on_user_update(elapsed_time) {
     Err(err) => {
       println!("ERROR: {}", err);
       false
@@ -56,7 +64,7 @@ extern "C" fn onUserUpdate(app: *const c_void, binding: *mut c_void, elapsed_tim
 }
 
 #[no_mangle]
-extern "C" fn onUserDestroy(_app: *const c_void, binding: *mut c_void) -> bool {
+extern "C" fn onUserDestroy(binding: *mut c_void) -> bool {
   // binding goes out of scope and is dropped
   let b = unsafe { Box::from_raw(binding as *mut Binding) };
   match b.game.on_user_destroy() {
@@ -90,9 +98,9 @@ pub trait Game {
   /// Returns the name of the application.
   fn name(&self) -> &str;
   /// Called on user create action.
-  fn on_user_create(&mut self, ctx: &Context) -> Result<(), OlcError>;
+  fn on_user_create(&mut self) -> Result<(), OlcError>;
   /// Called on user update action for every frame.
-  fn on_user_update(&mut self, ctx: &Context, elapsed_time: f32) -> Result<(), OlcError>;
+  fn on_user_update(&mut self, elapsed_time: f32) -> Result<(), OlcError>;
   /// Called on user destroy action.
   fn on_user_destroy(&mut self) -> Result<(), OlcError>;
 }
@@ -102,20 +110,14 @@ struct Binding<'a> {
   game: &'a mut dyn Game
 }
 
-/// Context to access drawing routines in olcPixelGameEngine.
-pub struct Context {
-  // Pointer to the app instance
-  app: *const c_void
-}
-
 /// Main function to run the game.
 /// It is recommended to pass full_screen and vsync as "false".
 pub fn run<'a>(
   game: &'a mut dyn Game,
-  screen_width: u32,
-  screen_height: u32,
-  pixel_width: u32,
-  pixel_height: u32,
+  screen_width: i32,
+  screen_height: i32,
+  pixel_width: i32,
+  pixel_height: i32,
   full_screen: bool,
   vsync: bool
 ) -> Result<(), OlcError>
@@ -128,10 +130,10 @@ pub fn run<'a>(
     start(
       name.as_ptr(),
       Box::into_raw(Box::new(binding)) as *mut c_void,
-      screen_width as i32,
-      screen_height as i32,
-      pixel_width as i32,
-      pixel_height as i32,
+      screen_width,
+      screen_height,
+      pixel_width,
+      pixel_height,
       full_screen,
       vsync
     )
@@ -154,14 +156,32 @@ pub fn run<'a>(
 struct Example {}
 impl Game for Example {
   fn name(&self) -> &str { "Hello, World!" }
-  fn on_user_create(&mut self, _ctx: &Context) -> Result<(), OlcError> {
+
+  fn on_user_create(&mut self) -> Result<(), OlcError> {
     println!("Create call from the game!");
     Ok(())
   }
-  fn on_user_update(&mut self, _ctx: &Context, elapsed_time: f32) -> Result<(), OlcError> {
-    println!("Update call from the game! {}", elapsed_time);
+
+  fn on_user_update(&mut self, elapsed_time: f32) -> Result<(), OlcError> {
+    // println!("Update call from the game! {}", elapsed_time);
+    unsafe {
+      for x in 0..screen_width() {
+        for y in 0..screen_height() {
+          let p = Pixel {
+            r: (c_rand() % 255) as u8,
+            g: (c_rand() % 255) as u8,
+            b: (c_rand() % 255) as u8,
+            a: 255
+          };
+          draw(x, y, p);
+        }
+      }
+    }
+
     Ok(())
   }
+
+  #[inline]
   fn on_user_destroy(&mut self) -> Result<(), OlcError> {
     println!("Destroy call from the game!");
     Ok(())
@@ -170,5 +190,5 @@ impl Game for Example {
 
 fn main() {
   let mut game = Example {};
-  run(&mut game, 200, 80, 4, 4, false, false).unwrap();
+  run(&mut game, 256, 240, 4, 4, false, false).unwrap();
 }
