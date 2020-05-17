@@ -46,12 +46,12 @@ pub struct Pixel {
 
 impl Pixel {
   /// Creates a new pixel with RGBA value.
-  pub fn rgba(r: u8, g: u8, b: u8, a: u8) -> Pixel {
+  pub const fn rgba(r: u8, g: u8, b: u8, a: u8) -> Pixel {
     Pixel { r, g, b, a }
   }
 
   /// Creates a new pixel with RGB value.
-  pub fn rgb(r: u8, g: u8, b: u8) -> Pixel {
+  pub const fn rgb(r: u8, g: u8, b: u8) -> Pixel {
     Pixel { r, g, b, a: 0xFF }
   }
 }

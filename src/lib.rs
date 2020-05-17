@@ -192,6 +192,38 @@ pub fn c_rand() -> i32 {
 // olcPixelGameEngine API
 //----------------------------------
 
+pub const GREY: Pixel = Pixel::rgb(192, 192, 192);
+pub const DARK_GREY: Pixel = Pixel::rgb(128, 128, 128);
+pub const VERY_DARK_GREY: Pixel = Pixel::rgb(64, 64, 64);
+
+pub const RED: Pixel = Pixel::rgb(255, 0, 0);
+pub const DARK_RED: Pixel = Pixel::rgb(128, 0, 0);
+pub const VERY_DARK_RED: Pixel = Pixel::rgb(64, 0, 0);
+
+pub const YELLOW: Pixel = Pixel::rgb(255, 255, 0);
+pub const DARK_YELLOW: Pixel = Pixel::rgb(128, 128, 0);
+pub const VERY_DARK_YELLOW: Pixel = Pixel::rgb(64, 64, 0);
+
+pub const GREEN: Pixel = Pixel::rgb(0, 255, 0);
+pub const DARK_GREEN: Pixel = Pixel::rgb(0, 128, 0);
+pub const VERY_DARK_GREEN: Pixel = Pixel::rgb(0, 64, 0);
+
+pub const CYAN: Pixel = Pixel::rgb(0, 255, 255);
+pub const DARK_CYAN: Pixel = Pixel::rgb(0, 128, 128);
+pub const VERY_DARK_CYAN: Pixel = Pixel::rgb(0, 64, 64);
+
+pub const BLUE: Pixel = Pixel::rgb(0, 0, 255);
+pub const DARK_BLUE: Pixel = Pixel::rgb(0, 0, 128);
+pub const VERY_DARK_BLUE: Pixel = Pixel::rgb(0, 0, 64);
+
+pub const MAGENTA: Pixel = Pixel::rgb(255, 0, 255);
+pub const DARK_MAGENTA: Pixel = Pixel::rgb(128, 0, 128);
+pub const VERY_DARK_MAGENTA: Pixel = Pixel::rgb(64, 0, 64);
+
+pub const WHITE: Pixel = Pixel::rgb(255, 255, 255);
+pub const BLACK: Pixel = Pixel::rgb(0, 0, 0);
+pub const BLANK: Pixel = Pixel::rgba(0, 0, 0, 0);
+
 /// Returns the width of the screen in "pixels".
 pub fn screen_width() -> i32 {
   unsafe { cpp::ScreenWidth() }
