@@ -3,6 +3,8 @@
 The repository contains the latest version of https://github.com/OneLoneCoder/olcPixelGameEngine
 updated to be built on macos as well as linux and windows.
 
+Supports older macos versions, e.g. builds and runs fine on 10.13 and 10.14.
+
 It also contains Rust bindings which can be used independently of `olcPixelGameEngine` files.
 
 > If the `olcPixelGameEngine.h` file is out of date, then please update it!
